@@ -50,9 +50,17 @@ router.post("/", ensureLoggedIn, async function (req, res, next) {
  * Authorization required: none
  */
 
-router.get("/", async function (req, res, next) {
+ router.get("/", async function (req, res, next) {
   try {
-    const companies = await Company.findAll();
+    let { minEmployees, maxEmployees, nameLike } = req.query
+    let companies;
+
+    if( minEmployees || maxEmployees || nameLike ){
+      companies = await Company.find( { minEmployees, maxEmployees, nameLike } )
+    }
+    else{
+      companies = await Company.findAll();
+    }
     return res.json({ companies });
   } catch (err) {
     return next(err);

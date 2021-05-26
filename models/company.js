@@ -86,6 +86,57 @@ class Company {
 
     return company;
   }
+// Search for a list of companies where the given filters are met
+  // takes in an object with parameters.  Looks for minEmployees, maxEmployees, 
+  // nameLike (will find case-insensitive, partial matches) If the minEmployees 
+  // parameter is greater than the maxEmployees parameter will respond with a 400 error 
+  // with an appropriate message.
+  // Returns [{ handle, name, description, numEmployees, logoUrl }, ...]
+
+  static async find( filters ) {
+
+    let sqlComponents = []  // this is used to agregate all the SQL components
+    let sqlInputs = [] // this is used to agregate all the inputs
+    let i = 1
+
+    const minEmployees = Number.parseInt( filters.minEmployees ) 
+    const maxEmployees = Number.parseInt( filters.maxEmployees )
+    const { nameLike } = filters
+
+    if( minEmployees && maxEmployees && minEmployees > maxEmployees ){
+      throw new NotFoundError(
+        "Minimum employees can not exceed maximum employees"
+      )
+    }
+
+    if( minEmployees ){
+      sqlComponents.push( `num_employees >= $${ i++ }` )
+      sqlInputs.push( minEmployees )
+    }
+    if( maxEmployees ){
+      sqlComponents.push( `num_employees <= $${ i++ }` )
+      sqlInputs.push( maxEmployees )
+    }
+    if( nameLike ){
+      sqlComponents.push( `lower(name) like lower($${ i++ })` )
+      sqlInputs.push( '%' + nameLike + '%' )
+    }
+
+    const sqlSearchLine = 
+      `select 
+        handle, 
+        name, 
+        description, 
+        num_employees as "numEmployees", 
+        logo_url as "logoUrl"
+      from companies
+      where ${ sqlComponents.join(" and ") }`
+
+
+    let searchResults = await db.query( sqlSearchLine, sqlInputs )
+
+    return searchResults.rows
+  }
 
   /** Update company data with `data`.
    *
