@@ -94,6 +94,125 @@ describe("GET /companies", function () {
             },
           ],
     });
+  })
+
+  test("filtering for companies with a '1'", async function () {
+    const resp = await request(app).get("/companies?nameLike=1");
+    expect(resp.body).toEqual({
+      companies:
+          [
+            {
+              handle: "c1",
+              name: "C1",
+              description: "Desc1",
+              numEmployees: 1,
+              logoUrl: "http://c1.img",
+            }
+          ],
+    });
+  });
+  test("filtering for companies with a 'c'", async function () {
+    const resp = await request(app).get("/companies?nameLike=c")
+    expect(resp.body).toEqual({
+      companies:
+          [
+            {
+              handle: "c1",
+              name: "C1",
+              description: "Desc1",
+              numEmployees: 1,
+              logoUrl: "http://c1.img",
+            },
+            {
+              handle: "c2",
+              name: "C2",
+              description: "Desc2",
+              numEmployees: 2,
+              logoUrl: "http://c2.img",
+            },
+            {
+              handle: "c3",
+              name: "C3",
+              description: "Desc3",
+              numEmployees: 3,
+              logoUrl: "http://c3.img",
+            },
+          ],
+    });
+  });
+  test("filtering for companies with max of 2 employees", async function () {
+    const resp = await request(app).get("/companies?MaxEmployees=2")
+    expect(resp.body).toEqual({
+      companies:
+          [
+            {
+              handle: "c1",
+              name: "C1",
+              description: "Desc1",
+              numEmployees: 1,
+              logoUrl: "http://c1.img",
+            },
+            {
+              handle: "c2",
+              name: "C2",
+              description: "Desc2",
+              numEmployees: 2,
+              logoUrl: "http://c2.img",
+            },
+            {
+              handle: "c3",
+              name: "C3",
+              description: "Desc3",
+              numEmployees: 3,
+              logoUrl: "http://c3.img",
+            },
+          ],
+    });
+  });
+  test("filtering for companies with minimum of 2 employees", async function () {
+    const resp = await request(app).get("/companies?minEmployees=2")
+    expect(resp.body).toEqual({
+      companies:
+          [
+            {
+              handle: "c2",
+              name: "C2",
+              description: "Desc2",
+              numEmployees: 2,
+              logoUrl: "http://c2.img",
+            },
+            {
+              handle: "c3",
+              name: "C3",
+              description: "Desc3",
+              numEmployees: 3,
+              logoUrl: "http://c3.img",
+            },
+          ],
+    });
+  });
+  test(`filtering for companies with 
+          max of 2 employees and minimum of 2 employees` , async function () {
+    const resp = await request(app)
+                        .get("/companies?maxEmployees=2&minEmployees=2")
+    expect(resp.body).toEqual({
+      companies:
+          [
+            {
+              handle: "c2",
+              name: "C2",
+              description: "Desc2",
+              numEmployees: 2,
+              logoUrl: "http://c2.img",
+            }
+          ],
+    });
+  });
+  test(`fails: filtering for companies with 
+          max of 1 employees and minimum of 3 employees` , async function () {
+    const resp = await request(app)
+                        .get("/companies?maxEmployees=1&minEmployees=3")
+    expect(resp.status).toEqual( 404 )
   });
 
   test("fails: test next() handler", async function () {
