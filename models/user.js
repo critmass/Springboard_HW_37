@@ -7,6 +7,7 @@ const {
   NotFoundError,
   BadRequestError,
   UnauthorizedError,
+  ExpressError
 } = require("../expressError");
 
 const { BCRYPT_WORK_FACTOR } = require("../config.js");
@@ -98,48 +99,106 @@ class User {
 
   /** Find all users.
    *
-   * Returns [{ username, first_name, last_name, email, is_admin }, ...]
+   * Returns [{ username, firstName, lastName, email, isAdmin, jobs }, ...]
+   * where jobs is [jobId, ...]
    **/
 
   static async findAll() {
-    const result = await db.query(
-          `SELECT username,
+    const results = await db.query(
+          `SELECT u.username,
                   first_name AS "firstName",
                   last_name AS "lastName",
                   email,
-                  is_admin AS "isAdmin"
-           FROM users
-           ORDER BY username`,
+                  is_admin AS "isAdmin",
+                  job_id AS "job"
+           FROM users u
+           LEFT JOIN applications a
+           ON a.username = u.username
+           ORDER BY username`
     );
 
-    return result.rows;
+    return results.rows.reduceRight((rows, row ) => {
+      if( rows && rows[0] != row.username ) {
+        rows.unshift( {
+          username:row.username, 
+          firstName:row.firstName, 
+          lastName:row.lastName, 
+          email:row.email, 
+          isAdmin:row.isAdmin, 
+          // jobs:[row.job]
+        } )
+      }
+      else{
+        rows[0].jobs.unshift( row.job )
+      }
+      return rows
+    },[]);
   }
 
   /** Given a username, return data about user.
    *
-   * Returns { username, first_name, last_name, is_admin, jobs }
-   *   where jobs is { id, title, company_handle, company_name, state }
+   * Returns { username, firstName, lastName, isAdmin, jobs }
+   *   where jobs is [ jobId , ..A
    *
    * Throws NotFoundError if user not found.
    **/
 
   static async get(username) {
     const userRes = await db.query(
-          `SELECT username,
+          `SELECT u.username,
                   first_name AS "firstName",
                   last_name AS "lastName",
                   email,
-                  is_admin AS "isAdmin"
-           FROM users
-           WHERE username = $1`,
+                  is_admin AS "isAdmin",
+                  job_id AS "jobId"
+          FROM users u
+          LEFT JOIN applications a
+          ON a.username = u.username
+          WHERE u.username = $1`,
         [username],
     );
 
+    if (!userRes.rowCount) {
+      throw new NotFoundError(`No user: ${username}`);
+    }
+    
     const user = userRes.rows[0];
 
-    if (!user) throw new NotFoundError(`No user: ${username}`);
+    return {
+      username:user.username,
+      firstName:user.firstName,
+      lastName:user.lastName,
+      email:user.email,
+      isAdmin:user.isAdmin,
+      // jobs:userRes.rows.map( row => row.jobId )
+    };
+  }
 
-    return user;
+  static async apply( username, jobId ) {
+
+    let appliedAlready = await db.query(
+      `select * 
+      from applications 
+      where 
+        username = $1 
+        and
+        job_id = $2`,
+        [ username, jobId ]
+    )
+
+    if( appliedAlready.rows ) {
+      throw ExpressError(`${username} has already applied to job:${jobId}`, 409)
+}
+    let confirmation = await db.query(
+      `insert into applications
+      ( username, job_id )
+      values ( $1, $2 )
+      returning username, job_id as "jobId"`,
+      [ username, jobId ]
+    )
+
+    return confirmation.rows[0]
+
   }
 
   /** Update user data with `data`.

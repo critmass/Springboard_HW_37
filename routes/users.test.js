@@ -12,6 +12,7 @@ const {
   commonAfterEach,
   commonAfterAll,
   u1Token,
+  u2Token,
 } = require("./_testCommon");
 
 beforeAll(commonBeforeAll);
@@ -165,16 +166,31 @@ describe("GET /users", function () {
 /************************************** GET /users/:username */
 
 describe("GET /users/:username", function () {
-  test("works for users", async function () {
+  test("works for user", async function () {
     const resp = await request(app)
-        .get(`/users/u1`)
+        .get(`/users/u2`)
+        .set("authorization", `Bearer ${u2Token}`);
+    expect(resp.body).toEqual({
+      user: {
+        username: "u2",
+        firstName: "U2F",
+        lastName: "U2L",
+        email: "user2@user.com",
+        isAdmin: false,
+      },
+    });
+  });
+
+  test("works for admin", async function () {
+    const resp = await request(app)
+        .get(`/users/u2`)
         .set("authorization", `Bearer ${u1Token}`);
     expect(resp.body).toEqual({
       user: {
-        username: "u1",
-        firstName: "U1F",
-        lastName: "U1L",
-        email: "user1@user.com",
+        username: "u2",
+        firstName: "U2F",
+        lastName: "U2L",
+        email: "user2@user.com",
         isAdmin: false,
       },
     });
@@ -183,6 +199,13 @@ describe("GET /users/:username", function () {
   test("unauth for anon", async function () {
     const resp = await request(app)
         .get(`/users/u1`);
+    expect(resp.statusCode).toEqual(401);
+  });
+
+  test("unauth for non-admin and not the same user", async function () {
+    const resp = await request(app)
+        .get(`/users/u1`)
+        .set("authorization", `Bearer ${u2Token}`);
     expect(resp.statusCode).toEqual(401);
   });
 
