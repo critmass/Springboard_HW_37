@@ -125,7 +125,7 @@ router.delete("/:username", ensureLoggedIn, async function (req, res, next) {
   try {
     if( 
       !res.locals.user.isAdmin && 
-      res.locals.user.username != res.params.username
+      res.locals.user.username != req.params.username
     ){
       throw new UnauthorizedError()
     }
@@ -136,21 +136,26 @@ router.delete("/:username", ensureLoggedIn, async function (req, res, next) {
   }
 });
 
-// POST /users/:username/jobs/:id that allows that user to apply 
+// POST /users/:username/jobs/:jobId that allows that user to apply 
 // for a job (or an admin to do it for them). That route should return JSON like:
 
 // { applied: jobId }
 
-router.post("/:username/jobs/:id", (req, res, next) => {
+router.post("/:username/jobs/:jobId", ensureLoggedIn, async (req, res, next) => {
   try{
 
-    const { username, id } = req.params
+    if( 
+      !res.locals.user.isAdmin && 
+      res.locals.user.username != req.params.username
+    ){
+      throw new UnauthorizedError()
+    }
+    
+    const { username, jobId } = req.params
 
-    const applied = User.apply( username, id )
+    let applied = await User.apply( username, jobId )
 
-    return res.json({
-      applied:applied.jobId
-    })
+    return res.status(201).json({ applied })
   }
   catch(err){
     next(err)

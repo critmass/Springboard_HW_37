@@ -174,28 +174,56 @@ class User {
     };
   }
 
+  // Given a username and a jobId, applies user to a job
+  // returns the username and jobId if successful, or throws 
+  // an error if not
+
   static async apply( username, jobId ) {
 
-    let appliedAlready = await db.query(
-      `select * 
-      from applications 
+    let usersAndJobs = await db.query(
+      `select u.username, j.id 
+      from applications a
+      full outer join jobs j on a.job_id = j.id
+      full outer join users u on u.username = a.username
       where 
-        username = $1 
-        and
-        job_id = $2`,
-        [ username, jobId ]
+        u.username = $1
+        or
+        j.id = $2`,
+      [ username, jobId]
     )
 
-    if( appliedAlready.rows ) {
-      throw ExpressError(`${username} has already applied to job:${jobId}`, 409)
-}
+    // console.log(usersAndJobs.rows)
+
+    let userExists = false
+    let jobExists = false
+
+    const appliedAlready = usersAndJobs.rows.find( line =>{
+      if( line.username == username ) userExists = true
+      if( line.id == jobId ) jobExists = true
+
+      return (line.username == username) && (line.id == jobId)
+    })
+
+    if( !userExists ) throw new NotFoundError(`user: ${username} not found`)
+    if( !jobExists ) throw new NotFoundError(`job ID: ${jobId} not found`)
+
+    console.log(appliedAlready)
+    if( !!appliedAlready ) {
+      throw new ExpressError(
+        `${username} has already applied to job:${jobId}`, 
+        409
+      )
+    }
+
     let confirmation = await db.query(
       `insert into applications
-      ( username, job_id )
+        ( username, job_id )
       values ( $1, $2 )
       returning username, job_id as "jobId"`,
       [ username, jobId ]
     )
+
+    console.log( confirmation.rows )
 
     return confirmation.rows[0]
 

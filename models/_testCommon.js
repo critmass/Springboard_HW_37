@@ -8,6 +8,11 @@ async function commonBeforeAll() {
   await db.query("DELETE FROM companies");
   // noinspection SqlWithoutWhere
   await db.query("DELETE FROM users");
+  // noinspection SqlWithoutWhere
+  await db.query("DELETE FROM jobs");
+
+  // this is needed to reset the auto incrementor so you test better
+  await db.query("alter sequence jobs_id_seq restart with 1")
 
   await db.query(`
     INSERT INTO companies(handle, name, num_employees, description, logo_url)
@@ -28,6 +33,19 @@ async function commonBeforeAll() {
         await bcrypt.hash("password1", BCRYPT_WORK_FACTOR),
         await bcrypt.hash("password2", BCRYPT_WORK_FACTOR),
       ]);
+
+  await db.query(`
+    insert into jobs 
+      (title, salary, equity, company_handle)
+    values
+      ('j11', 11, 0, 'c1'),
+      ('j21', 21, 0, 'c1'),
+      ('j12', 12, 0, 'c2'),
+      ('j22', 22, 0, 'c2'),
+      ('j13', 13, 0, 'c3'),
+      ('j23', 23, 0, 'c3')
+    returning title
+  `)
 }
 
 async function commonBeforeEach() {

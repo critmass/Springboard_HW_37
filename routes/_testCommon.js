@@ -4,6 +4,7 @@ const db = require("../db.js");
 const User = require("../models/user");
 const Company = require("../models/company");
 const { createToken } = require("../helpers/tokens");
+const Job = require("../models/job.js");
 
 async function commonBeforeAll() {
   // noinspection SqlWithoutWhere
@@ -60,6 +61,28 @@ async function commonBeforeAll() {
     password: "password3",
     isAdmin: false,
   });
+
+    // this is needed to reset the auto incrementor so you test better
+    await db.query("alter sequence jobs_id_seq restart with 1")
+
+  await Job.create({
+    title:"j1",
+    salary:1,
+    equity:0,
+    companyHandle:"c1",
+  })
+  await Job.create({
+    title:"j2",
+    salary:2,
+    equity:0,
+    companyHandle:"c2",
+  })
+  await Job.create({
+    title:"j3",
+    salary:3,
+    equity:0,
+    companyHandle:"c3",
+  })
 }
 
 async function commonBeforeEach() {
