@@ -192,15 +192,13 @@ class User {
       [ username, jobId]
     )
 
-    // console.log(usersAndJobs.rows)
-
-    let userExists = false
-    let jobExists = false
-
+    const userExists = usersAndJobs.rows.find( line =>{
+      return ( line.username == username ) 
+    })
+    const jobExists = usersAndJobs.rows.find( line =>{
+      return ( line.id == jobId )
+    })
     const appliedAlready = usersAndJobs.rows.find( line =>{
-      if( line.username == username ) userExists = true
-      if( line.id == jobId ) jobExists = true
-
       return (line.username == username) && (line.id == jobId)
     })
 
